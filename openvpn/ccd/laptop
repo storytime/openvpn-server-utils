@@ -1,0 +1,4 @@
+# config for network merge
+
+iroute 10.19.20.0 255.255.255.0 #сеть за клиентом
+ifconfig-push 10.19.19.45 10.19.19.46
