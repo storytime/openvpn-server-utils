@@ -3,6 +3,7 @@
 import sys
 import subprocess
 import os
+import commands
 
 CLIENT_CN = sys.argv[1]
 SEP = '==========> '
@@ -46,8 +47,7 @@ clientKey = open(CLIENT_KEY_FILE, 'r').read()[:-1]
 clientCert = open(CLIENT_CER_FILE, 'r').read()[:-1]
 
 # server ip
-f = os.popen('ip addr | grep "state UP" -A2 | tail -n1 | awk :"{print $2}" | cut -f1  -d'/'')
-serverIp=f.read()
+serverIp=commands.getoutput("/sbin/ifconfig").split("\n")[1].split()[1][0:]
 
 resultConfig = open(CONFIG_TEMPLATE, "r+").read().replace(TA_PLACEHOLDER, taKey)
 resultConfig = resultConfig.replace(CA_PLACEHOLDER, serverCa)
