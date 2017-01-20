@@ -1,46 +1,39 @@
 #!/bin/bash
 
-if [ "$(id -u)" != "0" ]; then
-	echo "Sorry, you are not root."
-	exit 1
-fi
-
 OVPN_ROOT='/etc/openvpn'
-ERSA='/etc/openvpn/EasyRSA-git-development'
-ERSA_NAME="EasyRSA-git-development"
-ERSA_K='/etc/openvpn/EasyRSA-git-development/pki'
-ERSA_HOME='/etc/openvpn/EasyRSA-git-development/easyrsa'
+ERSA=$OVPN_ROOT/easy-rsa-release-2.x/easy-rsa/2.0
+ERSA_KEYS=$ERSA/keys
+SERVER_NAME="server"
 
-rm -rf $OVPN_ROOT/
-mkdir -p $OVPN_ROOT/
+cd
+git clone https://github.com/storytime/openvpn-server-utils.git
+cd openvpn-server-utils
 
-cp -rp openvpn/* $OVPN_ROOT/
-cd /tmp
-wget  https://github.com/OpenVPN/easy-rsa/archive/master.zip 
-unzip master.zip  > /dev/null
-cd easy-rsa-master
-
-./build/build-dist.sh
-tar zxvf $ERSA_NAME.tgz > /dev/null
-rm -rf $ERSA >> /dev/null
-mv $ERSA_NAME/ $OVPN_ROOT/
-
-rm -rf /tmp/easy-rsa-master/
-rm /tmp/master.zip
-
-cd $ERSA
-$ERSA_HOME init-pki
-$ERSA_HOME build-ca
-$ERSA_HOME build-server-full server nopass
-$ERSA_HOME gen-dh
+rm -rf $OVPN_ROOT
+mkdir -p $OVPN_ROOT
+cp -rp openvpn/* $OVPN_ROOT
 
 cd $OVPN_ROOT
-mkdir -p $OVPN_ROOT/keys
+wget https://github.com/OpenVPN//easy-rsa/archive/release/2.x.zip
+unzip 2.x.zip  > /dev/null
+rm 2.x.zip
+cd $ERSA
+
+source ./vars
+./clean-all
+./build-dh
+./pkitool --initca
+./pkitool --server $SERVER_NAME
 openvpn --genkey --secret keys/ta.key
 
-ln -s $ERSA_K/ca.crt  $OVPN_ROOT/keys/ca.crt
-ln -s $ERSA_K/dh.pem $OVPN_ROOT/keys/dh2048.pem
-ln -s $ERSA_K/private/server.key $OVPN_ROOT/keys/server.key
-ln -s $ERSA_K/issued/server.crt $OVPN_ROOT/keys/server.crt
+mkdir -p $OVPN_ROOT/keys
+ln -s $ERSA_KEYS/ca.crt  $OVPN_ROOT/keys/ca.crt
+ln -s $ERSA_KEYS/ta.key  $OVPN_ROOT/keys/ta.key
+ln -s $ERSA_KEYS/dh2048.pem $OVPN_ROOT/keys/dh2048.pem
+ln -s $ERSA_KEYS/$SERVER_NAME.key $OVPN_ROOT/keys/$SERVER_NAME.key
+ln -s $ERSA_KEYS/$SERVER_NAME.crt $OVPN_ROOT/keys/$SERVER_NAME.crt
 
-/etc/init.d/openvpn restart
+systemctl start openvpn@server
+
+cd
+rm openvpn-server-utils
